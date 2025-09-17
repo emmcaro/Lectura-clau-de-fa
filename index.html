@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Tutor - Clau de Fa</title>
+  <style>
+    body { font-family: sans-serif; background:#1a1a2e; color:white; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
+    .container { background:#2c2f33; padding:2rem; border-radius:1rem; width:500px; text-align:center; }
+    canvas { background:white; border:2px solid #333; border-radius:8px; width:100%; max-height:250px; }
+    .note-button { background:#E83F89; border:none; padding:0.75rem 1.25rem; margin:0.25rem; border-radius:9999px; color:#1a1a2e; font-weight:bold; cursor:pointer; }
+    .note-button:hover { background:#c72b6b; }
+    #feedback-area { margin-top:1rem; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Lectura de notes (Clau de Fa)</h1>
+    <canvas id="staffCanvas" width="500" height="250"></canvas>
+    <div>
+      <button class="note-button" data-note="C">C</button>
+      <button class="note-button" data-note="D">D</button>
+      <button class="note-button" data-note="E">E</button>
+      <button class="note-button" data-note="F">F</button>
+      <button class="note-button" data-note="G">G</button>
+      <button class="note-button" data-note="A">A</button>
+      <button class="note-button" data-note="B">B</button>
+    </div>
+    <div id="feedback-area"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('staffCanvas');
+    const ctx = canvas.getContext('2d');
+    const lineHeight = 20;
+    const staffTopY = 100;
+
+    // ✅ Posicions exactes per a la clau de Fa
+    const NOTES = {
+      'G2': staffTopY + lineHeight * 4,   // 1a línia
+      'A2': staffTopY + lineHeight * 3.5, // 1r espai
+      'B2': staffTopY + lineHeight * 3,   // 2a línia
+      'C3': staffTopY + lineHeight * 2.5, // 2n espai
+      'D3': staffTopY + lineHeight * 2,   // 3a línia
+      'E3': staffTopY + lineHeight * 1.5, // 3r espai
+      'F3': staffTopY + lineHeight * 1,   // 4a línia
+      'G3': staffTopY + lineHeight * 0.5, // 4t espai
+      'A3': staffTopY                     // 5a línia
+    };
+
+    let currentNote = null;
+
+    function drawStaff() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+
+      for (let i = 0; i < 5; i++) {
+        const y = staffTopY + i * lineHeight;
+        ctx.beginPath();
+        ctx.moveTo(30, y);
+        ctx.lineTo(canvas.width - 30, y);
+        ctx.stroke();
+      }
+
+      // 🎼 Clau de Fa (pujada 25px respecte versió anterior)
+      ctx.font = '140px Arial';
+      ctx.fillText('𝄢', 40, staffTopY + lineHeight * 4.3);
+    }
+
+    function drawNote(noteY) {
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.ellipse(canvas.width / 2, noteY, 15, 12, -Math.PI/16, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function newNote() {
+      drawStaff();
+      const noteNames = Object.keys(NOTES);
+      currentNote = noteNames[Math.floor(Math.random()*noteNames.length)];
+      drawNote(NOTES[currentNote]);
+      document.getElementById('feedback-area').textContent = '';
+    }
+
+    document.querySelectorAll('.note-button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const selected = btn.dataset.note;
+        if (selected === currentNote[0]) {
+          document.getElementById('feedback-area').textContent = "✅ Correcte!";
+          document.getElementById('feedback-area').style.color = "green";
+        } else {
+          document.getElementById('feedback-area').textContent = `❌ Era ${currentNote}`;
+          document.getElementById('feedback-area').style.color = "red";
+        }
+        setTimeout(newNote, 1200);
+      });
+    });
+
+    newNote();
+  </script>
+</body>
+</html>
