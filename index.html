@@ -1,103 +1,263 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Music Tutor - Clau de Fa</title>
-  <style>
-    body { font-family: sans-serif; background:#1a1a2e; color:white; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
-    .container { background:#2c2f33; padding:2rem; border-radius:1rem; width:500px; text-align:center; }
-    canvas { background:white; border:2px solid #333; border-radius:8px; width:100%; max-height:250px; }
-    .note-button { background:#E83F89; border:none; padding:0.75rem 1.25rem; margin:0.25rem; border-radius:9999px; color:#1a1a2e; font-weight:bold; cursor:pointer; }
-    .note-button:hover { background:#c72b6b; }
-    #feedback-area { margin-top:1rem; font-weight:bold; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lectura - Clau de Fa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-color: #1a1a2e;
+    --container-bg: #2c2f33;
+    --primary-color: #bb86fc;
+    --button-color: #E83F89;
+    --text-color: #f0f0f0;
+    --secondary-text-color: #a0a0a0;
+}
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.container {
+    background-color: var(--container-bg);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    max-width: 90vw;
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+}
+h1 { color: var(--primary-color); margin:0; }
+.header-stats { display:flex; justify-content:space-between; color:var(--secondary-text-color); }
+canvas { background:white; border:2px solid var(--text-color); border-radius:0.5rem; width:100%; height:auto; max-height:280px; }
+#controls { display:flex; flex-wrap:wrap; justify-content:center; gap:0.5rem; }
+.note-button { background:var(--button-color); color:var(--bg-color); border:none; padding:0.75rem 1.25rem; font-size:1.1rem; border-radius:9999px; cursor:pointer; font-weight:600; }
+.note-button:hover { background:#c72b6b; }
+#feedback-area { height:2rem; display:flex; align-items:center; justify-content:center; font-weight:bold; }
+#next-button { background:var(--button-color); color:var(--bg-color); border:none; padding:0.6rem 1.2rem; border-radius:9999px; cursor:pointer; font-weight:600; }
+.hidden { display:none; }
+#timer { font-weight:600; color:var(--primary-color); }
+</style>
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <h1>Lectura de notes (Clau de Fa)</h1>
-    <canvas id="staffCanvas" width="500" height="250"></canvas>
-    <div>
-      <button class="note-button" data-note="C">C</button>
-      <button class="note-button" data-note="D">D</button>
-      <button class="note-button" data-note="E">E</button>
-      <button class="note-button" data-note="F">F</button>
-      <button class="note-button" data-note="G">G</button>
-      <button class="note-button" data-note="A">A</button>
-      <button class="note-button" data-note="B">B</button>
+    <div class="header-stats">
+        <div>Punts: <span id="score">0</span> / <span id="totalQuestions">0</span></div>
+        <div>Temps: <span id="timer">15</span>s</div>
+    </div>
+    <canvas id="staffCanvas" width="500" height="320"></canvas>
+    <div id="controls">
+        <button class="note-button" data-note="Do">Do</button>
+        <button class="note-button" data-note="Re">Re</button>
+        <button class="note-button" data-note="Mi">Mi</button>
+        <button class="note-button" data-note="Fa">Fa</button>
+        <button class="note-button" data-note="Sol">Sol</button>
+        <button class="note-button" data-note="La">La</button>
+        <button class="note-button" data-note="Si">Si</button>
     </div>
     <div id="feedback-area"></div>
-  </div>
+    <button id="next-button" class="hidden">Següent nota</button>
+</div>
 
-  <script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('staffCanvas');
     const ctx = canvas.getContext('2d');
-    const lineHeight = 20;
-    const staffTopY = 100;
+    const noteButtons = document.querySelectorAll('.note-button');
+    const feedbackArea = document.getElementById('feedback-area');
+    const scoreDisplay = document.getElementById('score');
+    const totalQuestionsDisplay = document.getElementById('totalQuestions');
+    const nextButton = document.getElementById('next-button');
+    const timerDisplay = document.getElementById('timer');
 
-    // ✅ Posicions exactes per a la clau de Fa
-    const NOTES = {
-      'G2': staffTopY + lineHeight * 4,   // 1a línia
-      'A2': staffTopY + lineHeight * 3.5, // 1r espai
-      'B2': staffTopY + lineHeight * 3,   // 2a línia
-      'C3': staffTopY + lineHeight * 2.5, // 2n espai
-      'D3': staffTopY + lineHeight * 2,   // 3a línia
-      'E3': staffTopY + lineHeight * 1.5, // 3r espai
-      'F3': staffTopY + lineHeight * 1,   // 4a línia
-      'G3': staffTopY + lineHeight * 0.5, // 4t espai
-      'A3': staffTopY                     // 5a línia
+    const lineHeight = 20;
+    const staffTopY_Bass = 100;
+    const MAX_QUESTIONS = 25;
+    const TIME_LIMIT = 15;
+
+    let score = 0;
+    let totalQuestions = 0;
+    let currentNote = null;
+    let lastNote = null;
+    let countdown = null;
+    let timeLeft = TIME_LIMIT;
+
+    const staffColor = '#333';
+
+    // 🎵 Diccionari de notes en clau de Fa (Do2 a Do4)
+    const NOTE_MAPPING = {
+        "Do2": { y: staffTopY_Bass + lineHeight * 6, name: "Do" }, 
+        "Re2": { y: staffTopY_Bass + lineHeight * 5.5, name: "Re" }, 
+        "Mi2": { y: staffTopY_Bass + lineHeight * 5, name: "Mi" }, 
+        "Fa2": { y: staffTopY_Bass + lineHeight * 4.5, name: "Fa" }, 
+        "Sol2": { y: staffTopY_Bass + lineHeight * 4, name: "Sol" }, 
+        "La2": { y: staffTopY_Bass + lineHeight * 3.5, name: "La" }, 
+        "Si2": { y: staffTopY_Bass + lineHeight * 3, name: "Si" }, 
+        "Do3": { y: staffTopY_Bass + lineHeight * 2.5, name: "Do" }, 
+        "Re3": { y: staffTopY_Bass + lineHeight * 2, name: "Re" }, 
+        "Mi3": { y: staffTopY_Bass + lineHeight * 1.5, name: "Mi" }, 
+        "Fa3": { y: staffTopY_Bass + lineHeight * 1, name: "Fa" }, 
+        "Sol3": { y: staffTopY_Bass + lineHeight * 0.5, name: "Sol" }, 
+        "La3": { y: staffTopY_Bass, name: "La" }, 
+        "Si3": { y: staffTopY_Bass - lineHeight * 0.5, name: "Si" }, 
+        "Do4": { y: staffTopY_Bass - lineHeight, name: "Do" } 
     };
 
-    let currentNote = null;
+    const NOTE_POOL = Object.keys(NOTE_MAPPING);
+
+    // 🎵 So correcte
+    function playCorrectSound() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = ctx.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 600;
+        oscillator.connect(ctx.destination);
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), 250);
+    }
+
+    // 🎵 So error
+    function playErrorSound() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = ctx.createOscillator();
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.value = 150;
+        oscillator.connect(ctx.destination);
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), 400);
+    }
 
     function drawStaff() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 2;
-
-      for (let i = 0; i < 5; i++) {
-        const y = staffTopY + i * lineHeight;
-        ctx.beginPath();
-        ctx.moveTo(30, y);
-        ctx.lineTo(canvas.width - 30, y);
-        ctx.stroke();
-      }
-
-      // 🎼 Clau de Fa (pujada 25px respecte versió anterior)
-      ctx.font = '140px Arial';
-      ctx.fillText('𝄢', 40, staffTopY + lineHeight * 4.3);
-    }
-
-    function drawNote(noteY) {
-      ctx.fillStyle = '#333';
-      ctx.beginPath();
-      ctx.ellipse(canvas.width / 2, noteY, 15, 12, -Math.PI/16, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    function newNote() {
-      drawStaff();
-      const noteNames = Object.keys(NOTES);
-      currentNote = noteNames[Math.floor(Math.random()*noteNames.length)];
-      drawNote(NOTES[currentNote]);
-      document.getElementById('feedback-area').textContent = '';
-    }
-
-    document.querySelectorAll('.note-button').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const selected = btn.dataset.note;
-        if (selected === currentNote[0]) {
-          document.getElementById('feedback-area').textContent = "✅ Correcte!";
-          document.getElementById('feedback-area').style.color = "green";
-        } else {
-          document.getElementById('feedback-area').textContent = `❌ Era ${currentNote}`;
-          document.getElementById('feedback-area').style.color = "red";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = staffColor;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 5; i++) {
+            const y = staffTopY_Bass + i * lineHeight;
+            ctx.beginPath();
+            ctx.moveTo(30, y);
+            ctx.lineTo(canvas.width - 30, y);
+            ctx.stroke();
         }
-        setTimeout(newNote, 1200);
-      });
-    });
+        ctx.font = '133px Arial';
+        ctx.fillText('𝄢', 40, staffTopY_Bass + lineHeight * 4.2);
+    }
 
-    newNote();
-  </script>
+    function drawWholeNote(x, y) {
+        ctx.beginPath();
+        ctx.ellipse(x, y, 18, 10, -Math.PI/10, 0, 2*Math.PI);
+        ctx.strokeStyle = staffColor;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // línies addicionals
+        const staffLines = [];
+        for (let i = 0; i < 5; i++) staffLines.push(staffTopY_Bass + i*lineHeight);
+
+        if (y > staffLines[4]) { 
+            for (let ly = staffLines[4] + lineHeight; ly <= y; ly += lineHeight) {
+                ctx.beginPath();
+                ctx.moveTo(x - 25, ly);
+                ctx.lineTo(x + 25, ly);
+                ctx.stroke();
+            }
+        } else if (y < staffLines[0]) { 
+            for (let ly = staffLines[0] - lineHeight; ly >= y; ly -= lineHeight) {
+                ctx.beginPath();
+                ctx.moveTo(x - 25, ly);
+                ctx.lineTo(x + 25, ly);
+                ctx.stroke();
+            }
+        }
+    }
+
+    function startTimer() {
+        clearInterval(countdown);
+        timeLeft = TIME_LIMIT;
+        timerDisplay.textContent = timeLeft;
+        countdown = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                handleTimeout();
+            }
+        }, 1000);
+    }
+
+    function handleTimeout() {
+        feedbackArea.style.color = "red";
+        feedbackArea.textContent = `⏰ Temps esgotat. Era ${currentNote.name}.`;
+        playErrorSound();
+        noteButtons.forEach(b => b.disabled = true);
+        nextButton.classList.remove('hidden');
+    }
+
+    function generateQuestion() {
+        if (totalQuestions >= MAX_QUESTIONS) {
+            feedbackArea.style.color = "yellow";
+            feedbackArea.textContent = `🏁 Joc acabat! Puntuació final: ${score}/${MAX_QUESTIONS}`;
+            noteButtons.forEach(b => b.disabled = true);
+            nextButton.classList.add('hidden');
+            clearInterval(countdown);
+            return;
+        }
+
+        drawStaff();
+        let randomNote;
+        do {
+            randomNote = NOTE_POOL[Math.floor(Math.random() * NOTE_POOL.length)];
+        } while (randomNote === lastNote);
+        lastNote = randomNote;
+
+        currentNote = NOTE_MAPPING[randomNote];
+        drawWholeNote(canvas.width/2, currentNote.y);
+
+        feedbackArea.textContent = "Quina nota és?";
+        feedbackArea.style.color = "white";
+        noteButtons.forEach(b => b.disabled = false);
+        nextButton.classList.add('hidden');
+
+        totalQuestions++;
+        totalQuestionsDisplay.textContent = totalQuestions;
+
+        startTimer();
+    }
+
+    function handleNoteSelection(note) {
+        clearInterval(countdown);
+        if (note === currentNote.name) {
+            feedbackArea.style.color = "green";
+            feedbackArea.textContent = "✅ Correcte!";
+            playCorrectSound();
+            score++;
+        } else {
+            feedbackArea.style.color = "red";
+            feedbackArea.textContent = `❌ Incorrecte. Era ${currentNote.name}.`;
+            playErrorSound();
+        }
+        scoreDisplay.textContent = score;
+        noteButtons.forEach(b => b.disabled = true);
+        nextButton.classList.remove('hidden');
+    }
+
+    noteButtons.forEach(btn => btn.addEventListener('click', () => handleNoteSelection(btn.dataset.note)));
+    nextButton.addEventListener('click', generateQuestion);
+
+    generateQuestion();
+});
+</script>
 </body>
 </html>
+
