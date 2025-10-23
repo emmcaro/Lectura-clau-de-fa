@@ -117,26 +117,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const NOTE_POOL = Object.keys(NOTE_MAPPING);
 
-    // 🎵 So correcte
+    // 🎵 So correcte (des de carpeta sounds)
     function playCorrectSound() {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = ctx.createOscillator();
-        oscillator.type = 'sine';
-        oscillator.frequency.value = 600;
-        oscillator.connect(ctx.destination);
-        oscillator.start();
-        setTimeout(() => oscillator.stop(), 250);
+        const audio = new Audio('sounds/correcte.mp3');
+        audio.play();
     }
 
-    // 🎵 So error
+    // 🎵 So error (des de carpeta sounds)
     function playErrorSound() {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = ctx.createOscillator();
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.value = 150;
-        oscillator.connect(ctx.destination);
-        oscillator.start();
-        setTimeout(() => oscillator.stop(), 400);
+        const audio = new Audio('sounds/error.mp3');
+        audio.play();
     }
 
     function drawStaff() {
@@ -161,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineWidth = 4;
         ctx.stroke();
 
-        // línies addicionals
         const staffLines = [];
         for (let i = 0; i < 5; i++) staffLines.push(staffTopY_Bass + i*lineHeight);
 
@@ -260,4 +249,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-
