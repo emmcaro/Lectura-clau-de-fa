@@ -12,7 +12,7 @@
     --bg-color: #1a1a2e;
     --container-bg: #2c2f33;
     --primary-color: #bb86fc;
-    --button-color: #E83F89;
+    --button-color: #bb86fc;
     --text-color: #f0f0f0;
     --secondary-text-color: #a0a0a0;
 }
@@ -39,13 +39,82 @@ body {
     text-align: center;
 }
 h1 { color: var(--primary-color); margin:0; }
-.header-stats { display:flex; justify-content:space-between; color:var(--secondary-text-color); }
-canvas { background:white; border:2px solid var(--text-color); border-radius:0.5rem; width:100%; height:auto; max-height:280px; }
-#controls { display:flex; flex-wrap:wrap; justify-content:center; gap:0.5rem; }
-.note-button { background:var(--button-color); color:var(--bg-color); border:none; padding:0.75rem 1.25rem; font-size:1.1rem; border-radius:9999px; cursor:pointer; font-weight:600; }
-.note-button:hover { background:#c72b6b; }
-#feedback-area { height:2rem; display:flex; align-items:center; justify-content:center; font-weight:bold; }
-#next-button { background:var(--button-color); color:var(--bg-color); border:none; padding:0.6rem 1.2rem; border-radius:9999px; cursor:pointer; font-weight:600; }
+
+#difficulty-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+#difficulty-selection p {
+    margin: 0;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+}
+.difficulty-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+.difficulty-button {
+    background: var(--button-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.difficulty-button.active {
+    outline: 3px solid white;
+}
+.header-stats { 
+    display:flex; 
+    justify-content:space-between; 
+    color:var(--secondary-text-color); 
+}
+canvas { 
+    background:white; 
+    border:2px solid var(--text-color); 
+    border-radius:0.5rem; 
+    width:100%; 
+    height:auto; 
+    max-height:280px; 
+}
+#controls { 
+    display:flex; 
+    flex-wrap:wrap; 
+    justify-content:center; 
+    gap:0.5rem; 
+}
+.note-button { 
+    background:var(--button-color); 
+    color:var(--bg-color); 
+    border:none; 
+    padding:0.75rem 1.25rem; 
+    font-size:1.1rem; 
+    border-radius:9999px; 
+    cursor:pointer; 
+    font-weight:600; 
+}
+.note-button:hover { background:#9b68d6; }
+#feedback-area { 
+    height:2rem; 
+    display:flex; 
+    align-items:center; 
+    justify-content:center; 
+    font-weight:bold; 
+}
+#next-button { 
+    background:var(--button-color); 
+    color:var(--bg-color); 
+    border:none; 
+    padding:0.6rem 1.2rem; 
+    border-radius:9999px; 
+    cursor:pointer; 
+    font-weight:600; 
+}
 .hidden { display:none; }
 #timer { font-weight:600; color:var(--primary-color); }
 </style>
@@ -53,11 +122,24 @@ canvas { background:white; border:2px solid var(--text-color); border-radius:0.5
 <body>
 <div class="container">
     <h1>Lectura de notes (Clau de Fa)</h1>
+
+    <div id="difficulty-selection">
+        <p>Selecciona la dificultat:</p>
+        <div class="difficulty-buttons">
+            <button class="difficulty-button active" data-level="facil">Fàcil</button>
+            <button class="difficulty-button" data-level="normal">Normal</button>
+            <button class="difficulty-button" data-level="dificil">Difícil</button>
+            <button class="difficulty-button" data-level="extrem">Extrem ⚡️</button>
+        </div>
+    </div>
+
     <div class="header-stats">
         <div>Punts: <span id="score">0</span> / <span id="totalQuestions">0</span></div>
         <div>Temps: <span id="timer">15</span>s</div>
     </div>
+
     <canvas id="staffCanvas" width="500" height="320"></canvas>
+
     <div id="controls">
         <button class="note-button" data-note="Do">Do</button>
         <button class="note-button" data-note="Re">Re</button>
@@ -67,6 +149,7 @@ canvas { background:white; border:2px solid var(--text-color); border-radius:0.5
         <button class="note-button" data-note="La">La</button>
         <button class="note-button" data-note="Si">Si</button>
     </div>
+
     <div id="feedback-area"></div>
     <button id="next-button" class="hidden">Següent nota</button>
 </div>
@@ -81,22 +164,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalQuestionsDisplay = document.getElementById('totalQuestions');
     const nextButton = document.getElementById('next-button');
     const timerDisplay = document.getElementById('timer');
+    const difficultyButtons = document.querySelectorAll('.difficulty-button');
 
     const lineHeight = 20;
     const staffTopY_Bass = 100;
     const MAX_QUESTIONS = 25;
-    const TIME_LIMIT = 15;
 
+    let TIME_LIMIT = 15;
     let score = 0;
     let totalQuestions = 0;
     let currentNote = null;
     let lastNote = null;
     let countdown = null;
     let timeLeft = TIME_LIMIT;
+    let currentLevel = 'facil';
 
     const staffColor = '#333';
 
-    // 🎵 Diccionari de notes en clau de Fa (Do2 a Do4)
     const NOTE_MAPPING = {
         "Do2": { y: staffTopY_Bass + lineHeight * 6, name: "Do" }, 
         "Re2": { y: staffTopY_Bass + lineHeight * 5.5, name: "Re" }, 
@@ -115,15 +199,19 @@ document.addEventListener('DOMContentLoaded', () => {
         "Do4": { y: staffTopY_Bass - lineHeight, name: "Do" } 
     };
 
-    const NOTE_POOL = Object.keys(NOTE_MAPPING);
+    function getNotePool() {
+        if (currentLevel === 'facil') {
+            return Object.keys(NOTE_MAPPING).filter(n => n.endsWith('3') || n === 'Do4');
+        } else {
+            return Object.keys(NOTE_MAPPING);
+        }
+    }
 
-    // 🎵 So correcte (des de carpeta sounds)
     function playCorrectSound() {
         const audio = new Audio('sounds/correcte.mp3');
         audio.play();
     }
 
-    // 🎵 So error (des de carpeta sounds)
     function playErrorSound() {
         const audio = new Audio('sounds/error.mp3');
         audio.play();
@@ -204,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         drawStaff();
+        const NOTE_POOL = getNotePool();
         let randomNote;
         do {
             randomNote = NOTE_POOL[Math.floor(Math.random() * NOTE_POOL.length)];
@@ -228,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(countdown);
         if (note === currentNote.name) {
             feedbackArea.style.color = "green";
-            feedbackArea.textContent = "✅ Correcte!";
+            feedbackArea.textContent = `✅ Correcte! Era ${currentNote.name}.`;
             playCorrectSound();
             score++;
         } else {
@@ -241,8 +330,27 @@ document.addEventListener('DOMContentLoaded', () => {
         nextButton.classList.remove('hidden');
     }
 
+    function setDifficulty(level) {
+        currentLevel = level;
+        difficultyButtons.forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-level="${level}"]`).classList.add('active');
+
+        if (level === 'facil') TIME_LIMIT = 15;
+        else if (level === 'normal') TIME_LIMIT = 15;
+        else if (level === 'dificil') TIME_LIMIT = 8;
+        else if (level === 'extrem') TIME_LIMIT = 3;
+
+        score = 0;
+        totalQuestions = 0;
+        scoreDisplay.textContent = score;
+        totalQuestionsDisplay.textContent = totalQuestions;
+        feedbackArea.textContent = "";
+        generateQuestion();
+    }
+
     noteButtons.forEach(btn => btn.addEventListener('click', () => handleNoteSelection(btn.dataset.note)));
     nextButton.addEventListener('click', generateQuestion);
+    difficultyButtons.forEach(btn => btn.addEventListener('click', () => setDifficulty(btn.dataset.level)));
 
     generateQuestion();
 });
